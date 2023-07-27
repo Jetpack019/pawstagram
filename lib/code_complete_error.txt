@@ -1,0 +1,702 @@
+import 'dart:typed_data';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'package:instagram_clone_flutter/utils/colors.dart';
+
+class MobileScreenLayout extends StatefulWidget {
+  const MobileScreenLayout({Key? key}) : super(key: key);
+
+  @override
+  State<MobileScreenLayout> createState() => _MobileScreenLayoutState();
+}
+
+class _MobileScreenLayoutState extends State<MobileScreenLayout> {
+  int _page = 0;
+  late PageController pageController; // for tabs animation
+
+  @override
+  void initState() {
+    super.initState();
+    pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    pageController.dispose();
+  }
+
+  void onPageChanged(int page) {
+    setState(() {
+      _page = page;
+    });
+  }
+
+  void navigationTapped(int page) {
+    //Animating Page
+    pageController.jumpToPage(page);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: PageView(
+        controller: pageController,
+        onPageChanged: onPageChanged,
+        children: [
+          FeedScreen(),
+          SearchScreen(),
+          AddPostScreen(), // Updated AddPostScreen
+          FavoriteScreen(),
+          ProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: CupertinoTabBar(
+        backgroundColor: mobileBackgroundColor,
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.home,
+              color: (_page == 0) ? primaryColor : secondaryColor,
+            ),
+            label: '',
+            backgroundColor: primaryColor,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.search,
+              color: (_page == 1) ? primaryColor : secondaryColor,
+            ),
+            label: '',
+            backgroundColor: primaryColor,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.add_circle,
+              color: (_page == 2) ? primaryColor : secondaryColor,
+            ),
+            label: '',
+            backgroundColor: primaryColor,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.favorite,
+              color: (_page == 3) ? primaryColor : secondaryColor,
+            ),
+            label: '',
+            backgroundColor: primaryColor,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.person,
+              color: (_page == 4) ? primaryColor : secondaryColor,
+            ),
+            label: '',
+            backgroundColor: primaryColor,
+          ),
+        ],
+        onTap: navigationTapped,
+        currentIndex: _page,
+      ),
+    );
+  }
+}
+
+class FeedScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Feed'),
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        // Replace with your own data source or API call
+        // For example: Firestore.instance.collection('posts').snapshots()
+        stream: Stream<List<Map<String, dynamic>>>.empty(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          } else if (snapshot.hasData) {
+            final List<Map<String, dynamic>> posts = snapshot.data!;
+            return ListView.builder(
+              itemCount: posts.length,
+              itemBuilder: (ctx, index) {
+                return PostCard(
+                  snap: posts[index],
+                );
+              },
+            );
+          } else {
+            return const Center(
+              child: Text('No posts available.'),
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class PostCard extends StatelessWidget {
+  final Map<String, dynamic> snap;
+  const PostCard({
+    Key? key,
+    required this.snap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: 10,
+      ),
+      child: Column(
+        children: [
+          // HEADER SECTION OF THE POST
+          Container(
+            padding: const EdgeInsets.symmetric(
+              vertical: 4,
+              horizontal: 16,
+            ).copyWith(right: 0),
+            child: Row(
+              children: <Widget>[
+                CircleAvatar(
+                  radius: 16,
+                  backgroundImage: NetworkImage(
+                    snap['profImage'].toString(),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          snap['username'].toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Add more actions or options if needed
+              ],
+            ),
+          ),
+          // IMAGE SECTION OF THE POST
+          GestureDetector(
+            onTap: () {
+              // Handle tap on the post image
+            },
+            child: Image.network(
+              snap['postUrl'].toString(),
+              fit: BoxFit.cover,
+              height: 300,
+              width: double.infinity,
+            ),
+          ),
+          // LIKE, COMMENT SECTION OF THE POST
+          Row(
+            children: <Widget>[
+              IconButton(
+                icon: Icon(
+                  Icons.favorite_border,
+                ),
+                onPressed: () {
+                  // Handle like button press
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.comment_outlined,
+                ),
+                onPressed: () {
+                  // Handle comment button press
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.send,
+                ),
+                onPressed: () {
+                  // Handle send button press
+                },
+              ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: IconButton(
+                    icon: Icon(Icons.bookmark_border),
+                    onPressed: () {
+                      // Handle bookmark button press
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // DESCRIPTION AND NUMBER OF COMMENTS
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '${snap['likes']} likes',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  snap['description'].toString(),
+                ),
+                Text(
+                  'View all ${snap['comments']} comments',
+                  style: TextStyle(
+                    color: secondaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SearchScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Search'),
+      ),
+      body: Center(
+        child: Text('Search Screen'),
+      ),
+    );
+  }
+}
+
+class AddPostScreen extends StatefulWidget {
+  @override
+  _AddPostScreenState createState() => _AddPostScreenState();
+}
+
+class _AddPostScreenState extends State<AddPostScreen> {
+  Uint8List? _file;
+  bool isLoading = false;
+  final TextEditingController _descriptionController = TextEditingController();
+
+  Future<Uint8List?> pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.getImage(source: source);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      return bytes;
+    }
+    return null;
+  }
+
+  _selectImage(BuildContext parentContext) async {
+    return showDialog(
+      context: parentContext,
+      builder: (BuildContext context) {
+        return SimpleDialog(
+          title: const Text('Create a Post'),
+          children: <Widget>[
+            SimpleDialogOption(
+              padding: const EdgeInsets.all(20),
+              child: const Text('Take a photo'),
+              onPressed: () async {
+                Navigator.pop(context);
+                Uint8List? file = await pickImage(ImageSource.camera);
+                setState(() {
+                  _file = file;
+                });
+              },
+            ),
+            SimpleDialogOption(
+              padding: const EdgeInsets.all(20),
+              child: const Text('Choose from Gallery'),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                Uint8List? file = await pickImage(ImageSource.gallery);
+                setState(() {
+                  _file = file;
+                });
+              },
+            ),
+            SimpleDialogOption(
+              padding: const EdgeInsets.all(20),
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  void postImage() async {
+    if (_file == null || _descriptionController.text.isEmpty) {
+      // Validate if image and description are provided
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an image and provide a description.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    // Simulating a delay for demonstration purposes
+    await Future.delayed(Duration(seconds: 2));
+
+    setState(() {
+      isLoading = false;
+      _file = null;
+      _descriptionController.text = '';
+    });
+
+    // Navigate to the FeedScreen after posting the image
+    Navigator.pop(context);
+  }
+
+  void clearImage() {
+    setState(() {
+      _file = null;
+      _descriptionController.text = '';
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _descriptionController.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _file == null
+        ? Center(
+            child: IconButton(
+              icon: Icon(Icons.upload),
+              onPressed: () => _selectImage(context),
+            ),
+          )
+        : Scaffold(
+            appBar: AppBar(
+              title: Text(
+                'Post to',
+              ),
+              centerTitle: false,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back),
+                onPressed: clearImage,
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: postImage,
+                  child: Text(
+                    "Post",
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.0,
+                    ),
+                  ),
+                )
+              ],
+            ),
+            body: Column(
+              children: <Widget>[
+                isLoading ? LinearProgressIndicator() : SizedBox(height: 0),
+                Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(
+                        'https://example.com/user_profile_image.jpg',
+                      ),
+                    ),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.3,
+                      child: TextField(
+                        controller: _descriptionController,
+                        decoration: InputDecoration(
+                          hintText: "Write a caption...",
+                          border: InputBorder.none,
+                        ),
+                        maxLines: 8,
+                      ),
+                    ),
+                    SizedBox(
+                      height: 45.0,
+                      width: 45.0,
+                      child: AspectRatio(
+                        aspectRatio: 487 / 451,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              fit: BoxFit.fill,
+                              alignment: FractionalOffset.topCenter,
+                              image: MemoryImage(_file!),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Divider(),
+              ],
+            ),
+          );
+  }
+}
+
+class FavoriteScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Favorites'),
+      ),
+      body: Center(
+        child: Text('Favorites Screen'),
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+      ),
+      body: Center(
+        child: Text('Profile Screen'),
+      ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Instagram Clone',
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: mobileBackgroundColor,
+      ),
+      home: const MobileScreenLayout(),
+    );
+  }
+}
+
+void main() {
+  runApp(MyApp());
+}
+
+
+
+
+//Correct
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(InstagramClone());
+}
+
+class InstagramClone extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Instagram Clone',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Instagram'),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return PostCard();
+              },
+              childCount: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PostCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10.0),
+      child: IntrinsicHeight(
+        child: Column(
+          children: [
+            ListTile(
+              leading: CircleAvatar(
+                backgroundImage: AssetImage('assets/post_image.jpg'),
+              ),
+              title: Text('Username'),
+              subtitle: Text('Location'),
+              trailing: IconButton(
+                icon: Icon(Icons.more_vert),
+                onPressed: () {
+                  // Add your action here
+                },
+              ),
+            ),
+            Image.asset(
+              'assets/post_image.jpg',
+              width: 300, // Adjust the width as per your requirement
+              height: 200, // Adjust the height as per your requirement
+              fit: BoxFit
+                  .cover, // Adjust the image fit mode as per your requirement
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.favorite_border),
+                  onPressed: () {
+                    // Add your action here
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.comment),
+                  onPressed: () {
+                    // Add your action here
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.share),
+                  onPressed: () {
+                    // Add your action here
+                  },
+                ),
+                Spacer(),
+                IconButton(
+                  icon: Icon(Icons.bookmark_border),
+                  onPressed: () {
+                    // Add your action here
+                  },
+                ),
+              ],
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Liked by John and 1,234 others',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Text(
+                    'Username',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 8.0),
+                  Expanded(
+                    child: Text('Caption'),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'View all 123 comments',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 12.0,
+                    backgroundImage: AssetImage('assets/post_image.jpg'),
+                  ),
+                  SizedBox(width: 8.0),
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Add a comment...',
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.send),
+                    onPressed: () {
+                      // Add your action here
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                '2 hours ago',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
